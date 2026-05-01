@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnimeStream — Streaming Premium de Anime</title>
+  <meta name="description" content="Assista os melhores animes dublados e legendados com qualidade premium. Jujutsu Kaisen, Attack on Titan, Demon Slayer e muito mais.">
+  <meta name="theme-color" content="#b429f9">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="AnimeStream — Streaming Premium de Anime">
+  <meta property="og:description" content="Os melhores animes em um só lugar. Dublado e Legendado.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/public/og-image.jpg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:ital,wght@0,300;0,400;0,600;0,800;1,300&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/main.css">
+
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  <style>
+    /* Tab styles for auth modal */
+    .auth-tabs { display:flex; gap:0; margin-bottom:24px; background:rgba(255,255,255,0.04); border-radius:var(--radius-sm); padding:4px; }
+    .auth-tab { flex:1; padding:8px; text-align:center; border:none; background:none; color:var(--text-muted); font-family:'Rajdhani',sans-serif; font-size:.875rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:all .25s; }
+    .auth-tab.active { background:rgba(180,41,249,.2); color:#fff; }
+
+    /* User dropdown */
+    .user-menu-wrap { position:relative; }
+    .user-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); min-width:200px; overflow:hidden; box-shadow:0 16px 40px rgba(0,0,0,.6); opacity:0; pointer-events:none; transform:translateY(-8px); transition:all .25s; z-index:100; }
+    .user-dropdown.open { opacity:1; pointer-events:all; transform:translateY(0); }
+    .dropdown-item { display:flex; align-items:center; gap:10px; padding:12px 16px; color:var(--text-secondary); text-decoration:none; font-size:.875rem; transition:all .2s; cursor:pointer; border:none; background:none; width:100%; text-align:left; }
+    .dropdown-item:hover { background:rgba(255,255,255,.06); color:#fff; }
+    .dropdown-divider { height:1px; background:var(--border-subtle); margin:4px 0; }
+    .dropdown-header { padding:14px 16px 10px; border-bottom:1px solid var(--border-subtle); }
+    .dropdown-name { font-weight:700; font-size:.9rem; }
+    .dropdown-email { font-size:.75rem; color:var(--text-muted); }
+
+    /* Mobile menu */
+    .mobile-menu-btn { display:none; background:none; border:1px solid var(--border-subtle); color:var(--text-secondary); width:38px; height:38px; border-radius:var(--radius-sm); cursor:pointer; font-size:1.2rem; align-items:center; justify-content:center; transition:all .25s; }
+    @media (max-width:640px) { .mobile-menu-btn { display:flex; } }
+
+    /* VIP badge on card */
+    .user-vip-badge { display:inline-flex; align-items:center; gap:4px; background:linear-gradient(90deg,#ffd700,#ffaa00); color:#000; padding:2px 8px; border-radius:100px; font-size:.65rem; font-weight:800; letter-spacing:.08em; }
+
+    /* Scroll row wrapper */
+    .scroll-wrap { position:relative; }
+    .scroll-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:40px; height:40px; background:rgba(10,10,15,.9); border:1px solid var(--border-subtle); border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .25s; }
+    .scroll-arrow:hover { background:rgba(180,41,249,.3); border-color:var(--neon-purple); }
+    .scroll-arrow.left { left:-8px; }
+    .scroll-arrow.right { right:-8px; }
+
+    /* Fade sections on load */
+    .section { animation: fadeInUp .7s var(--transition) both; }
+  </style>
+</head>
+
+<body data-page="home">
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <a href="/" class="nav-logo">
+      <div class="logo-icon">▶</div>
+      <span class="logo-text-main">Anime</span><span class="logo-text-accent">Stream</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="/" class="active">Início</a></li>
+      <li><a href="catalog.html">Catálogo</a></li>
+      <li><a href="catalog.html?filter=trending">Trending</a></li>
+      <li><a href="catalog.html?filter=newest">Lançamentos</a></li>
+      <li><a href="catalog.html?filter=movies">Filmes</a></li>
+      <li><a href="favorites.html">Favoritos</a></li>
+      <li><a href="community.html">Comunidade</a></li>
+    </ul>
+
+    <div class="nav-right">
+      <button class="nav-search-btn" id="searchBtn" title="Pesquisar">🔍</button>
+
+      <!-- Guest: Login button -->
+      <a href="#" class="btn-login" id="loginBtn" onclick="openModal('authModal');return false;">
+        Entrar
+      </a>
+
+      <!-- Logged user -->
+      <div class="user-menu-wrap" id="userMenu" style="display:none">
+        <div style="position:relative;cursor:pointer" id="userAvatarBtn">
+          <div class="user-avatar">
+            <img id="userAvatar" src="" alt="Avatar">
+            <div class="vip-badge" id="vipBadge" style="display:none">★</div>
+          </div>
+        </div>
+        <div class="user-dropdown" id="userMenuDropdown">
+          <div class="dropdown-header">
+            <div class="dropdown-name" id="dropdownName">Usuário</div>
+            <div class="dropdown-email" id="dropdownEmail"></div>
+          </div>
+          <a href="profile.html" class="dropdown-item">👤 Perfil</a>
+          <a href="favorites.html" class="dropdown-item">♥ Meus Favoritos</a>
+          <a href="history.html" class="dropdown-item">🕐 Histórico</a>
+          <a href="vip.html" class="dropdown-item" style="color:var(--neon-gold)">★ Assinar VIP — R$1/mês</a>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" id="btnLogout" style="color:var(--neon-crimson)">⏻ Sair</button>
+        </div>
+      </div>
+
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    </div>
+  </nav>
+
+  <!-- HERO BANNER -->
+  <section class="hero-banner" id="heroBanner">
+    <div class="hero-slides" id="heroSlides"></div>
+
+    <button class="hero-nav-btn hero-nav-prev" id="heroPrev">‹</button>
+    <button class="hero-nav-btn hero-nav-next" id="heroNext">›</button>
+
+    <div class="hero-content" id="heroContent">
+      <!-- Filled by JS -->
+    </div>
+
+    <div class="hero-indicators" id="heroDots"></div>
+  </section>
+
+  <!-- ========================================
+       AD BANNER (Top)
+  ======================================== -->
+  <div style="padding:0 clamp(16px,4vw,60px);position:relative;z-index:1;margin-top:-20px">
+    <!-- Google AdSense slot (replace with real ad code) -->
+    <div class="ad-banner">Publicidade · Anúncio responsável</div>
+  </div>
+
+  <!-- ========================================
+       CONTINUE WATCHING
+  ======================================== -->
+  <section class="section" id="continueSection" style="padding-top:24px">
+    <div class="section-header">
+      <div class="section-title">
+        Continuar Assistindo
+        <span class="section-title-sub">Retome de onde parou</span>
+      </div>
+      <a href="history.html" class="view-all">Ver histórico →</a>
+    </div>
+    <div class="scroll-wrap">
+      <div class="scroll-container">
+        <div class="scroll-row" id="continuingRow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       TRENDING
+  ======================================== -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">
+        🔥 Trending
+        <span class="section-title-sub">Os mais assistidos agora</span>
+      </div>
+      <a href="catalog.html?filter=trending" class="view-all">Ver todos →</a>
+    </div>
+    <div class="scroll-wrap">
+      <div class="scroll-container">
+        <div class="scroll-row" id="trendingRow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       LANÇAMENTOS
+  ======================================== -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">
+        ✨ Lançamentos
+        <span class="section-title-sub">Novos episódios esta semana</span>
+      </div>
+      <a href="catalog.html?filter=newest" class="view-all">Ver todos →</a>
+    </div>
+    <div class="scroll-wrap">
+      <div class="scroll-container">
+        <div class="scroll-row" id="newestRow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       GÊNEROS
+  ======================================== -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Explorar por Gênero</div>
+    </div>
+    <div class="genres-grid" id="genresGrid"></div>
+  </section>
+
+  <!-- ========================================
+       TOP AVALIADOS
+  ======================================== -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">
+        ⭐ Top Avaliados
+        <span class="section-title-sub">Os melhores de todos os tempos</span>
+      </div>
+      <a href="catalog.html?sort=rating" class="view-all">Ver ranking →</a>
+    </div>
+    <div class="cards-row" id="topRatedRow"></div>
+  </section>
+
+  <!-- ========================================
+       VIP SECTION
+  ======================================== -->
+  <div class="vip-section" style="margin:0 clamp(16px,4vw,60px) 48px">
+    <div class="vip-grid">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:100px;padding:4px 14px;font-size:.7rem;font-weight:800;letter-spacing:.1em;color:var(--neon-gold);margin-bottom:16px">
+          ★ PLANO VIP
+        </div>
+        <h2 style="font-size:2rem;font-weight:700;margin-bottom:12px">Experiência Premium.<br>Por apenas:</h2>
+        <div class="vip-price">R$1 <span>/ mês</span></div>
+        <p style="color:var(--text-muted);font-size:.85rem;margin:16px 0">Cancele quando quiser. Sem taxas escondidas.</p>
+        <a href="vip.html" class="btn-play" style="display:inline-flex;margin-top:8px;background:linear-gradient(135deg,#ffd700,#ffaa00);color:#000;box-shadow:0 4px 24px rgba(255,215,0,.4)">
+          ★ Assinar VIP Agora
+        </a>
+      </div>
+      <ul class="vip-perks">
+        <li class="vip-perk">Badge VIP exclusivo no perfil</li>
+        <li class="vip-perk">Sem limite de assistência diária</li>
+        <li class="vip-perk">Menos anúncios na plataforma</li>
+        <li class="vip-perk">Cargo VIP no Discord automático</li>
+        <li class="vip-perk">Sorteios mensais exclusivos</li>
+        <li class="vip-perk">Área VIP com conteúdo exclusivo</li>
+        <li class="vip-perk">Wallpapers HD exclusivos</li>
+        <li class="vip-perk">Perfil personalizável</li>
+        <li class="vip-perk">Prioridade no suporte</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========================================
+       RECOMENDADOS
+  ======================================== -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">
+        🤖 Recomendados para Você
+        <span class="section-title-sub">Baseado nos seus gostos</span>
+      </div>
+    </div>
+    <div class="cards-row" id="recommendedRow"></div>
+  </section>
+
+  <!-- ========================================
+       DISCORD COMMUNITY
+  ======================================== -->
+  <section class="section">
+    <div style="background:linear-gradient(135deg,rgba(88,101,242,.1),rgba(88,101,242,.05));border:1px solid rgba(88,101,242,.2);border-radius:var(--radius-xl);padding:36px clamp(20px,4vw,48px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px">
+      <div>
+        <div style="font-size:2rem;margin-bottom:8px">🎮</div>
+        <h3 style="font-size:1.4rem;font-weight:700;margin-bottom:8px">Junte-se à Comunidade</h3>
+        <p style="color:var(--text-muted);font-size:.9rem;max-width:400px">Discuta episódios, participe de sorteios, receba notificações de lançamentos e conecte-se com outros fãs de anime.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:1.4rem;font-weight:700;color:#7289da">2.4k</div>
+            <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase">Membros</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--neon-green)">● 342</div>
+            <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase">Online agora</div>
+          </div>
+        </div>
+        <a href="https://discord.gg/SEU_INVITE" target="_blank" class="discord-btn">
+          <svg width="20" height="15" viewBox="0 0 71 55" fill="#7289da"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5 0.6a40 40 0 0 0-1.8 3.6 54.2 54.2 0 0 0-16.4 0A40 40 0 0 0 25.4.6 58.3 58.3 0 0 0 10.9 4.9C1.6 18.7-1 32.2.3 45.5a58.9 58.9 0 0 0 18 9.1 44 44 0 0 0 3.8-6.2 38.3 38.3 0 0 1-6-2.9l1.5-1.1a42 42 0 0 0 36 0l1.5 1.1a38.3 38.3 0 0 1-6 2.9 44 44 0 0 0 3.8 6.2 58.7 58.7 0 0 0 18.1-9.1c1.5-15.5-2.6-28.9-10.9-40.5ZM23.7 37.3c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2c3.5 0 6.5 3.2 6.4 7.2 0 4-2.9 7.2-6.4 7.2Zm23.6 0c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2c3.6 0 6.5 3.2 6.4 7.2 0 4-2.8 7.2-6.4 7.2Z"/></svg>
+          Entrar no Discord
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       FOOTER
+  ======================================== -->
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="nav-logo" style="font-size:1.4rem">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:.85rem">▶</div>
+          <span class="logo-text-main">Anime</span><span class="logo-text-accent">Stream</span>
+        </a>
+        <p class="footer-about">Streaming premium de anime dublado e legendado. Assista os melhores títulos com qualidade de imagem excepcional e experiência imersiva.</p>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <a href="https://discord.gg/SEU_INVITE" class="discord-btn" style="font-size:.78rem;padding:6px 12px">Discord</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Navegação</div>
+        <ul class="footer-links">
+          <li><a href="/">Início</a></li>
+          <li><a href="catalog.html">Catálogo</a></li>
+          <li><a href="catalog.html?filter=trending">Trending</a></li>
+          <li><a href="catalog.html?filter=newest">Lançamentos</a></li>
+          <li><a href="catalog.html?filter=movies">Filmes</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Conta</div>
+        <ul class="footer-links">
+          <li><a href="auth.html">Login / Cadastro</a></li>
+          <li><a href="vip.html">Assinar VIP</a></li>
+          <li><a href="favorites.html">Favoritos</a></li>
+          <li><a href="history.html">Histórico</a></li>
+          <li><a href="profile.html">Perfil</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <ul class="footer-links">
+          <li><a href="terms.html">Termos de Uso</a></li>
+          <li><a href="privacy.html">Privacidade</a></li>
+          <li><a href="dmca.html">DMCA</a></li>
+          <li><a href="contact.html">Contato</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2024 AnimeStream. Todos os direitos reservados.</span>
+      <span>Os conteúdos são incorporados de servidores externos. Não hospedamos vídeos.</span>
+    </div>
+  </footer>
+
+  <!-- ========================================
+       AD BANNER (Bottom)
+  ======================================== -->
+  <div style="position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--bg-deep);border-top:1px solid var(--border-subtle);padding:6px clamp(16px,4vw,60px);display:flex;align-items:center;justify-content:space-between" id="bottomAdBar">
+    <div class="ad-banner" style="flex:1;margin:0">Banner publicitário discreto</div>
+    <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 8px;font-size:1.1rem;flex-shrink:0">✕</button>
+  </div>
+
+  <!-- ========================================
+       MODALS
+  ======================================== -->
+
+  <!-- Anime Detail Modal -->
+  <div class="modal-overlay" id="animeModal">
+    <div class="modal">
+      <div class="modal-banner" id="modalBanner"></div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-body" style="padding:32px 28px 28px">
+        <button class="close-btn" onclick="closeModal('authModal')" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">✕</button>
+        <div class="auth-logo">
+          <a href="/" class="nav-logo" style="justify-content:center;font-size:1.4rem">
+            <div class="logo-icon" style="width:28px;height:28px;font-size:.8rem">▶</div>
+            <span class="logo-text-main">Anime</span><span class="logo-text-accent">Stream</span>
+          </a>
+        </div>
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabLogin">Entrar</button>
+          <button class="auth-tab" id="tabRegister">Cadastrar</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="formLogin">
+          <button class="social-btn google" id="btnGoogleLogin">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M47.5 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h13.2c-.6 3-2.3 5.6-4.8 7.3v6h7.8c4.6-4.2 7.3-10.5 7.3-17.4z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.8-6c-2.1 1.4-4.8 2.3-8.1 2.3-6.2 0-11.5-4.2-13.4-9.8H2.5v6.2C6.5 42.7 14.7 48 24 48z"/><path fill="#FBBC05" d="M10.6 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7v-6.2H2.5C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.9l8.1-6.2z"/><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.5 0 24 0 14.7 0 6.5 5.3 2.5 13.1l8.1 6.2c1.9-5.6 7.2-9.8 13.4-9.8z"/></svg>
+            Continuar com Google
+          </button>
+          <button class="social-btn discord" id="btnDiscordLogin">
+            <svg width="18" height="13" viewBox="0 0 71 55" fill="#7289da"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5 0.6a40 40 0 0 0-1.8 3.6 54.2 54.2 0 0 0-16.4 0A40 40 0 0 0 25.4.6 58.3 58.3 0 0 0 10.9 4.9C1.6 18.7-1 32.2.3 45.5a58.9 58.9 0 0 0 18 9.1 44 44 0 0 0 3.8-6.2 38.3 38.3 0 0 1-6-2.9l1.5-1.1a42 42 0 0 0 36 0l1.5 1.1a38.3 38.3 0 0 1-6 2.9 44 44 0 0 0 3.8 6.2 58.7 58.7 0 0 0 18.1-9.1c1.5-15.5-2.6-28.9-10.9-40.5Z"/></svg>
+            Continuar com Discord
+          </button>
+          <div class="divider">ou</div>
+          <form id="loginFormEl">
+            <div class="form-group">
+              <label class="form-label" for="loginEmail">Email</label>
+              <input class="form-input" type="email" id="loginEmail" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPass">Senha</label>
+              <input class="form-input" type="password" id="loginPass" placeholder="••••••••" required>
+            </div>
+            <div style="text-align:right;margin-bottom:12px">
+              <a href="forgot.html" style="color:var(--neon-purple);font-size:.78rem;text-decoration:none">Esqueci minha senha</a>
+            </div>
+            <button type="submit" class="btn-submit">Entrar</button>
+          </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="formRegister" style="display:none">
+          <button class="social-btn google" id="btnGoogleReg">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M47.5 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h13.2c-.6 3-2.3 5.6-4.8 7.3v6h7.8c4.6-4.2 7.3-10.5 7.3-17.4z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.8-6c-2.1 1.4-4.8 2.3-8.1 2.3-6.2 0-11.5-4.2-13.4-9.8H2.5v6.2C6.5 42.7 14.7 48 24 48z"/><path fill="#FBBC05" d="M10.6 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7v-6.2H2.5C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.9l8.1-6.2z"/><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.5 0 24 0 14.7 0 6.5 5.3 2.5 13.1l8.1 6.2c1.9-5.6 7.2-9.8 13.4-9.8z"/></svg>
+            Cadastrar com Google
+          </button>
+          <div class="divider">ou</div>
+          <form id="regFormEl">
+            <div class="form-group">
+              <label class="form-label" for="regName">Nome</label>
+              <input class="form-input" type="text" id="regName" placeholder="Seu nome" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regEmail">Email</label>
+              <input class="form-input" type="email" id="regEmail" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regPass">Senha</label>
+              <input class="form-input" type="password" id="regPass" placeholder="Mín. 8 caracteres" required minlength="8">
+            </div>
+            <div style="margin-bottom:14px">
+              <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+            </div>
+            <button type="submit" class="btn-submit">Criar Conta Grátis</button>
+          </form>
+        </div>
+
+        <p style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-top:16px">
+          Ao continuar, você aceita nossos <a href="terms.html" style="color:var(--neon-purple)">Termos de Uso</a> e <a href="privacy.html" style="color:var(--neon-purple)">Política de Privacidade</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Limit Popup -->
+  <div class="popup-overlay" id="limitPopup">
+    <div class="popup">
+      <div class="popup-icon">⏱️</div>
+      <h3 class="popup-title">Limite Diário Atingido</h3>
+      <p class="popup-text">Você atingiu o limite de 2 horas diárias para visitantes. Crie uma conta gratuita para assistir ilimitadamente!</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-submit" onclick="closeModal('limitPopup');openModal('authModal')">🎌 Criar Conta Grátis</button>
+        <button class="btn-info" style="width:100%;justify-content:center" onclick="closeModal('limitPopup')">Talvez depois</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Overlay -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-input-wrap">
+      <span class="search-icon-left">🔍</span>
+      <input class="search-input" type="text" id="searchInput" placeholder="Buscar animes, gêneros, personagens...">
+      <button class="search-close" id="searchClose">✕</button>
+    </div>
+    <div class="search-filters">
+      <button class="filter-btn active" data-filter="all">Todos</button>
+      <button class="filter-btn" data-filter="dub">Dublado</button>
+      <button class="filter-btn" data-filter="leg">Legendado</button>
+      <button class="filter-btn" data-filter="2024">2024</button>
+      <button class="filter-btn" data-filter="2023">2023</button>
+      <button class="filter-btn" data-filter="acao">Ação</button>
+      <button class="filter-btn" data-filter="romance">Romance</button>
+    </div>
+    <div class="search-results cards-row" id="searchResultsGrid"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ========================================
+       SCRIPTS
+  ======================================== -->
+
+  <!-- Firebase (ESM) — loaded in firebase.js -->
+  <script type="module" src="js/firebase.js"></script>
+
+  <!-- App -->
+  <script>
+    // Make ANIME_DATA global before module loads
+  </script>
+  <script src="js/app.js" type="module"></script>
+
+  <!-- Inline helpers -->
+  <script>
+    // Expose globals needed by inline handlers
+    function openModal(id) {
+      document.getElementById(id)?.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id) {
+      document.getElementById(id)?.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Navbar scroll
+    window.addEventListener('scroll', () => {
+      document.querySelector('.navbar')?.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    // Register form uses btnGoogleReg too
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btnGoogleReg')?.addEventListener('click', () => window.AnimeAuth?.loginWithGoogle());
+    });
+  </script>
+</body>
+</html>
