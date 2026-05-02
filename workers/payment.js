@@ -35,6 +35,25 @@ export default {
         const paymentId = decodeURIComponent(path.split("/").pop() || "");
         return await handleStatus(paymentId, env);
       }
+
+      // Serve static files from GitHub
+      if (path === '/' || path.startsWith('/css/') || path.startsWith('/js/') || path.startsWith('/pages/') || path === '/index.html' || path === '/README.md' || path === '/wrangler.toml') {
+        const filePath = path === '/' ? '/index.html' : path;
+        try {
+          const response = await fetch(`https://raw.githubusercontent.com/sassukefenned/animestream/main${filePath}`);
+          if (response.ok) {
+            return new Response(response.body, {
+              headers: {
+                'Content-Type': getContentType(filePath),
+                ...CORS_HEADERS
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore and fall to not found
+        }
+      }
+
       return json({ error: "Route not found" }, 404);
     } catch (error) {
       return json(
@@ -59,6 +78,16 @@ function safeError(err) {
   if (!err) return "Unknown error";
   if (typeof err === "string") return err;
   return err.message || "Unknown error";
+}
+
+function getContentType(path) {
+  if (path.endsWith('.html')) return 'text/html';
+  if (path.endsWith('.css')) return 'text/css';
+  if (path.endsWith('.js')) return 'application/javascript';
+  if (path.endsWith('.json')) return 'application/json';
+  if (path.endsWith('.md')) return 'text/markdown';
+  if (path.endsWith('.toml')) return 'application/toml';
+  return 'text/plain';
 }
 
 function requireEnv(env, key) {
