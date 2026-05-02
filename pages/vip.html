@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIP - AnimeStream</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .vip-wrap { margin-left: var(--sidebar-w); min-height: 100vh; padding: 28px; position: relative; z-index: 2; }
+    .vip-grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; }
+    .vip-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; padding:18px; }
+    .vip-title { font-size:2rem; letter-spacing:.08em; margin-bottom:8px; }
+    .vip-sub { color:var(--text-secondary); margin-bottom:14px; }
+    .vip-price { font-size:2.1rem; font-weight:800; color:var(--neon-orange); text-shadow: var(--glow-orange); margin-bottom:14px; }
+    .vip-benefits { display:grid; gap:8px; margin: 10px 0 16px; }
+    .vip-benefit { background:#08080d; border:1px solid var(--border-subtle); border-radius:8px; padding:10px; }
+    .vip-btn { border:1px solid var(--border-neon); background:rgba(180,41,249,.12); color:#fff; padding:12px 16px; border-radius:10px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:800; letter-spacing:.08em; text-transform:uppercase; width:100%; }
+    .vip-btn:hover { box-shadow: var(--glow-purple); }
+    .vip-btn[disabled] { opacity:.55; cursor:not-allowed; }
+    .vip-field { display:grid; gap:6px; margin-bottom:10px; }
+    .vip-input { width:100%; padding:10px 12px; background:#08080d; color:var(--text-primary); border:1px solid var(--border-subtle); border-radius:8px; outline:none; }
+    .vip-input:focus { border-color:var(--neon-purple); box-shadow:0 0 0 3px rgba(180,41,249,.18); }
+    .pix-qr { width:100%; max-width:300px; border-radius:10px; border:1px solid var(--border-subtle); display:none; }
+    .pix-code { width:100%; min-height:100px; background:#08080d; border:1px solid var(--border-subtle); border-radius:8px; color:#fff; padding:10px; font-family:monospace; font-size:.84rem; display:none; }
+    .inline { display:flex; gap:8px; flex-wrap:wrap; }
+    .muted { color:var(--text-secondary); font-size:.92rem; }
+    #vipStatus { margin-top:10px; min-height:24px; }
+    #toastWrap { position:fixed; right:16px; bottom:16px; z-index:99999; display:grid; gap:8px; }
+    .toast { background:#0e0e16; border:1px solid var(--border-subtle); border-left:4px solid var(--neon-purple); color:#fff; padding:10px 12px; border-radius:8px; min-width:220px; }
+    .toast.error { border-left-color: var(--neon-crimson); }
+    .toast.success { border-left-color: #48d37c; }
+    @media (max-width:1024px){ .vip-wrap{ margin-left:0; padding:18px; } .vip-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body data-page="vip">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="icon">▶</span><span class="text">ANIME</span></div>
+      <nav class="nav-menu">
+        <a href="../index.html">HOME</a>
+        <a href="../pages/player.html">PLAYER</a>
+        <a href="#" class="active">VIP</a>
+        <a href="../pages/admin.html">ADMIN</a>
+      </nav>
+    </aside>
+
+    <div class="noise-overlay"></div>
+    <div class="bg-particles"></div>
+
+    <main class="vip-wrap">
+      <div class="vip-grid">
+        <section class="vip-card">
+          <h1 class="vip-title">Plano VIP</h1>
+          <p class="vip-sub">Acesso premium com checkout PIX instantâneo.</p>
+          <div class="vip-price">R$ 5,00 / mês</div>
+          <div class="vip-benefits">
+            <div class="vip-benefit">✓ Sem limite de tempo para assistir</div>
+            <div class="vip-benefit">✓ Prioridade em novos episódios</div>
+            <div class="vip-benefit">✓ Perfil VIP com destaque neon</div>
+            <div class="vip-benefit">✓ Suporte premium</div>
+          </div>
+          <div class="muted">Pagamento processado via Asaas.</div>
+        </section>
+
+        <section class="vip-card">
+          <h2 style="margin-bottom:10px;">Assinar agora</h2>
+          <div class="vip-field">
+            <label for="vipName">Nome completo</label>
+            <input id="vipName" class="vip-input" placeholder="Seu nome">
+          </div>
+          <div class="vip-field">
+            <label for="vipEmail">E-mail</label>
+            <input id="vipEmail" class="vip-input" type="email" placeholder="voce@email.com">
+          </div>
+          <div class="vip-field">
+            <label for="vipCpfCnpj">CPF/CNPJ</label>
+            <input id="vipCpfCnpj" class="vip-input" placeholder="Somente números">
+          </div>
+          <button id="vipSubscribeBtn" class="vip-btn">Assinar VIP - R$ 5,00/mês</button>
+          <div id="vipStatus" class="muted"></div>
+          <hr style="margin:14px 0;border-color:var(--border-subtle);">
+          <img id="pixQr" class="pix-qr" alt="QR Code PIX">
+          <textarea id="pixPayload" class="pix-code" readonly></textarea>
+          <div class="inline" style="margin-top:8px;">
+            <button id="copyPixBtn" class="vip-btn" style="display:none;">Copiar código PIX</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toastWrap"></div>
+
+  <script type="module" src="../js/firebase.js"></script>
+  <script>
+    (function () {
+      const WORKER_BASE = '/api/payment';
+      const POLL_MS = 5000;
+      let pollTimer = null;
+      let latestPaymentId = '';
+
+      const $ = (id) => document.getElementById(id);
+
+      function toast(type, message) {
+        const wrap = $('toastWrap');
+        if (!wrap) return;
+        const t = document.createElement('div');
+        t.className = `toast ${type || 'info'}`;
+        t.textContent = message;
+        wrap.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      function setStatus(text) {
+        const el = $('vipStatus');
+        if (el) el.textContent = text;
+      }
+
+      function onlyDigits(v) {
+        return String(v || '').replace(/\D/g, '');
+      }
+
+      async function waitAuthReady() {
+        if (window.AnimeAuth?.currentUser) return window.AnimeAuth.currentUser;
+        return new Promise((resolve) => {
+          document.addEventListener('authReady', (ev) => {
+            resolve(ev?.detail?.user || window.AnimeAuth?.currentUser || null);
+          }, { once: true });
+        });
+      }
+
+      function fillUserData(user) {
+        $('vipEmail').value = user?.email || '';
+        $('vipName').value = window.AnimeAuth?.userProfile?.name || user?.displayName || '';
+      }
+
+      async function api(path, options) {
+        const res = await fetch(path, options);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || data.message || `Erro HTTP ${res.status}`);
+        return data;
+      }
+
+      async function checkStatus(paymentId) {
+        const data = await api(`${WORKER_BASE}/status/${encodeURIComponent(paymentId)}`, { method: 'GET' });
+        const status = String(data.status || '').toUpperCase();
+        if (status === 'RECEIVED' || status === 'CONFIRMED' || status === 'PAYMENT_RECEIVED' || status === 'PAYMENT_CONFIRMED') {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          setStatus('Pagamento confirmado. Ativando VIP...');
+          toast('success', 'Pagamento confirmado! VIP liberado.');
+          setTimeout(() => { window.location.href = '../index.html'; }, 1800);
+          return true;
+        }
+        setStatus(`Aguardando pagamento... Status: ${status || 'PENDENTE'}`);
+        return false;
+      }
+
+      async function startPolling(paymentId) {
+        latestPaymentId = paymentId;
+        if (pollTimer) clearInterval(pollTimer);
+        await checkStatus(paymentId).catch(() => {});
+        pollTimer = setInterval(() => {
+          checkStatus(paymentId).catch((err) => setStatus(`Falha ao consultar status: ${err.message}`));
+        }, POLL_MS);
+      }
+
+      async function createPayment() {
+        const user = await waitAuthReady();
+        if (!user) {
+          toast('error', 'Faça login antes de assinar o VIP.');
+          setStatus('Usuário não autenticado.');
+          return;
+        }
+        const name = $('vipName').value.trim();
+        const email = $('vipEmail').value.trim();
+        const cpfCnpj = onlyDigits($('vipCpfCnpj').value);
+        if (!name || !email || cpfCnpj.length < 11) {
+          toast('error', 'Preencha nome, e-mail e CPF/CNPJ válido.');
+          return;
+        }
+
+        const btn = $('vipSubscribeBtn');
+        btn.disabled = true;
+        setStatus('Gerando cobrança PIX...');
+
+        try {
+          const data = await api(`${WORKER_BASE}/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: user.uid,
+              email,
+              name,
+              cpfCnpj
+            })
+          });
+
+          const qr = data?.pix?.encodedImage || '';
+          const payload = data?.pix?.payload || '';
+          const paymentId = data?.paymentId || '';
+
+          if (!paymentId) throw new Error('paymentId ausente na resposta.');
+
+          const qrImg = $('pixQr');
+          if (qr) {
+            qrImg.src = qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`;
+            qrImg.style.display = 'block';
+          }
+          $('pixPayload').value = payload;
+          $('pixPayload').style.display = 'block';
+          $('copyPixBtn').style.display = 'inline-flex';
+          setStatus('PIX gerado. Escaneie o QR Code ou copie o código.');
+          toast('success', 'Cobrança PIX criada com sucesso.');
+          await startPolling(paymentId);
+        } catch (err) {
+          toast('error', `Erro ao criar cobrança: ${err.message}`);
+          setStatus('Não foi possível gerar o PIX.');
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function copyPix() {
+        const payload = $('pixPayload').value || '';
+        if (!payload) return;
+        await navigator.clipboard.writeText(payload);
+        toast('success', 'Código PIX copiado.');
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        const user = await waitAuthReady();
+        if (!user) {
+          setStatus('Faça login para assinar o VIP.');
+        } else {
+          fillUserData(user);
+        }
+        $('vipSubscribeBtn').addEventListener('click', createPayment);
+        $('copyPixBtn').addEventListener('click', copyPix);
+      });
+
+      window.addEventListener('beforeunload', () => {
+        if (pollTimer) clearInterval(pollTimer);
+      });
+    })();
+  </script>
+</body>
+</html>

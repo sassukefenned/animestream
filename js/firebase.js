@@ -54,7 +54,9 @@ async function loadUserProfile(user) {
   const ref  = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
   if (snap.exists()) {
-    return snap.data();
+    const data = snap.data();
+    const normalized = await normalizeVipStatus(ref, data);
+    return { ...data, ...normalized };
   }
   // Create new profile
   const profile = {
@@ -72,6 +74,33 @@ async function loadUserProfile(user) {
   };
   await setDoc(ref, profile);
   return profile;
+}
+
+async function normalizeVipStatus(userRef, profile) {
+  const now = new Date();
+  const rawExpiry = profile?.vipExpiresAt;
+  let expiryDate = null;
+  if (rawExpiry?.toDate) {
+    expiryDate = rawExpiry.toDate();
+  } else if (rawExpiry?.seconds) {
+    expiryDate = new Date(rawExpiry.seconds * 1000);
+  } else if (typeof rawExpiry === 'string' || typeof rawExpiry === 'number') {
+    expiryDate = new Date(rawExpiry);
+  }
+
+  if (expiryDate && expiryDate <= now && (profile?.isVIP || profile?.plan === 'vip')) {
+    await updateDoc(userRef, {
+      isVIP: false,
+      plan: 'free',
+      vipExpiresAt: null
+    });
+    return { isVIP: false, plan: 'free', vipExpiresAt: null };
+  }
+  if (expiryDate && expiryDate > now && (!profile?.isVIP || profile?.plan !== 'vip')) {
+    await updateDoc(userRef, { isVIP: true, plan: 'vip' });
+    return { isVIP: true, plan: 'vip' };
+  }
+  return {};
 }
 
 function updateNavUI(user, profile) {
@@ -233,15 +262,31 @@ function showLimitPopup() {
 // VIP SYSTEM
 // ============================================
 async function checkVIPStatus(userId) {
-  const snap = await getDoc(doc(db, 'vipUsers', userId));
-  if (snap.exists()) {
-    const data = snap.data();
-    if (data.expiresAt.toDate() > new Date()) {
-      await updateDoc(doc(db, 'users', userId), { isVIP: true, plan: 'vip' });
-      return true;
-    }
+  const userRef = doc(db, 'users', userId);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return false;
+  const data = snap.data();
+  const normalized = await normalizeVipStatus(userRef, data);
+  const merged = { ...data, ...normalized };
+  return !!merged.isVIP;
+}
+
+// ============================================
+// ADMIN ACCESS
+// ============================================
+async function isAdminUser(user = currentUser) {
+  if (!user?.email) return false;
+  const email = String(user.email).toLowerCase();
+  const hardcodedAdmins = ['admin@animestream.com'];
+  if (hardcodedAdmins.includes(email)) return true;
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'admins'));
+    if (!snap.exists()) return false;
+    const emails = snap.data()?.emails || [];
+    return emails.map(e => String(e).toLowerCase()).includes(email);
+  } catch {
+    return false;
   }
-  return false;
 }
 
 // ============================================
@@ -260,6 +305,8 @@ window.AnimeAuth = {
   addToHistory,
   checkGuestLimit,
   incrementGuestWatch,
+  checkVIPStatus,
+  isAdminUser,
   get currentUser() { return currentUser; },
   get userProfile() { return userProfile; },
   db, auth

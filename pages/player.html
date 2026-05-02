@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player — AnimeStream</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .player-container { padding: 40px; margin-left: var(--sidebar-w); position: relative; z-index: 2; }
+    .video-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--radius-md); border: 1px solid var(--border-neon); box-shadow: var(--glow-purple); display: flex; align-items: center; justify-content: center;}
+    .mock-video { color: var(--neon-orange); font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: 0.1em; }
+    @media (max-width: 1024px) { .player-container { margin-left: 0; padding: 20px; } }
+  </style>
+</head>
+<body data-page="player">
+
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="icon">▶</span></div>
+      <nav class="nav-menu">
+        <a href="../index.html">HOME</a>
+        <a href="#">MY LIST</a>
+      </nav>
+    </aside>
+
+    <div class="noise-overlay"></div>
+    <div class="bg-particles"></div>
+
+    <main class="player-container">
+      <div id="playerBreadcrumb" style="margin-bottom:12px"></div>
+      <h2 class="section-title" style="margin-bottom: 14px;">NOW PLAYING</h2>
+      <div class="video-wrapper" style="position:relative;">
+        <div id="playerLoader" class="mock-video" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">CARREGANDO...</div>
+        <iframe id="playerIframe" title="anime-player" style="display:none;width:100%;height:100%;border:0;border-radius:8px;" allowfullscreen></iframe>
+      </div>
+      <div class="inline-actions" style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-login" id="prevEpBtn" style="cursor:pointer;">EP ANTERIOR</button>
+        <button class="btn-login" id="nextEpBtn" style="cursor:pointer;">PROX EP</button>
+      </div>
+      <div id="playerAnimeInfo"></div>
+      <div style="margin-top:14px;">
+        <h3 class="section-title" style="font-size:1.2rem;margin-bottom:8px;">SERVERS</h3>
+        <div id="serverBtns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <h3 class="section-title" style="font-size:1.2rem;margin-bottom:8px;">AUDIO</h3>
+        <div id="langBtns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+      <div id="episodeSidebar" style="margin-top:16px;"></div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/firebase.js"></script>
+  <script src="../js/app.js"></script>
+  <script type="module" src="../js/player.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.initPlayerPage) window.initPlayerPage();
+    });
+  </script>
+</body>
+</html>

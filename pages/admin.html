@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | AnimeStream</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .admin-wrap { margin-left: var(--sidebar-w); min-height: 100vh; padding: 28px; position: relative; z-index: 2; }
+    .admin-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; }
+    .admin-title { font-size:2rem; letter-spacing:.08em; }
+    .admin-tabs { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+    .admin-tab { border:1px solid var(--border-neon); background:var(--bg-card); color:var(--text-primary); padding:10px 14px; border-radius:8px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .admin-tab.active, .admin-tab:hover { box-shadow: var(--glow-purple); background: rgba(180,41,249,.12); }
+    .admin-panel { display:none; }
+    .admin-panel.active { display:block; }
+    .grid-3 { display:grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap:14px; margin-bottom:18px; }
+    .stat-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:10px; padding:16px; }
+    .stat-label { color:var(--text-secondary); font-size:.9rem; }
+    .stat-value { font-size:1.8rem; font-weight:800; font-family:'Rajdhani',sans-serif; }
+    .admin-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:10px; padding:14px; margin-bottom:14px; }
+    .admin-card h3 { margin-bottom:10px; font-size:1.2rem; }
+    .admin-form { display:grid; gap:10px; }
+    .admin-form.grid-2 { grid-template-columns: repeat(2, minmax(200px, 1fr)); }
+    .admin-form.grid-3 { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+    .admin-input, .admin-select, .admin-textarea { width:100%; padding:10px 12px; background:#08080d; color:var(--text-primary); border:1px solid var(--border-subtle); border-radius:8px; outline:none; }
+    .admin-input:focus, .admin-select:focus, .admin-textarea:focus { border-color: var(--neon-purple); box-shadow: 0 0 0 3px rgba(180,41,249,.18); }
+    .admin-textarea { min-height:90px; resize:vertical; }
+    .admin-btn { border:1px solid var(--border-neon); background:var(--bg-card); color:#fff; padding:9px 14px; border-radius:8px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .admin-btn:hover { box-shadow: var(--glow-purple); background: rgba(180,41,249,.15); }
+    .admin-btn.danger { border-color: rgba(255,45,85,.5); }
+    .admin-btn.danger:hover { box-shadow: var(--glow-crimson); background: rgba(255,45,85,.14); }
+    .admin-table-wrap { overflow:auto; }
+    .admin-table { width:100%; border-collapse: collapse; min-width: 860px; }
+    .admin-table th, .admin-table td { border-bottom:1px solid var(--border-subtle); padding:10px; text-align:left; font-size:.9rem; }
+    .admin-table th { color:var(--text-secondary); font-family:'Rajdhani',sans-serif; letter-spacing:.08em; }
+    .inline-actions { display:flex; gap:8px; }
+    .check-list { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
+    .check-item { background:#08080d; border:1px solid var(--border-subtle); padding:9px; border-radius:8px; display:flex; gap:8px; align-items:flex-start; }
+    #toastWrap { position:fixed; right:16px; bottom:16px; z-index:99999; display:grid; gap:8px; }
+    .toast { background:#0e0e16; border:1px solid var(--border-subtle); border-left:4px solid var(--neon-purple); color:#fff; padding:10px 12px; border-radius:8px; min-width:220px; }
+    .toast.error { border-left-color: var(--neon-crimson); }
+    .toast.success { border-left-color: #48d37c; }
+    .muted { color:var(--text-secondary); font-size:.9rem; }
+    @media (max-width:1024px){ .admin-wrap{ margin-left:0; padding:18px; } .admin-form.grid-2, .admin-form.grid-3, .grid-3{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body data-page="admin">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="icon">▶</span><span class="text">ANIME</span></div>
+      <nav class="nav-menu">
+        <a href="../index.html">HOME</a>
+        <a href="#" class="active">ADMIN</a>
+        <a href="../pages/player.html">PLAYER</a>
+        <a href="../pages/vip.html">ASSINAR VIP</a>
+      </nav>
+    </aside>
+
+    <div class="noise-overlay"></div>
+    <div class="bg-particles"></div>
+
+    <main class="admin-wrap">
+      <div class="admin-head">
+        <h1 class="admin-title">Painel Admin</h1>
+        <div class="inline-actions">
+          <a class="admin-btn" href="../pages/vip.html">Assinar VIP</a>
+          <button class="admin-btn" id="refreshAllBtn">Atualizar</button>
+          <button class="admin-btn danger" id="logoutAdminBtn">Logout</button>
+        </div>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="dashboard">Dashboard</button>
+        <button class="admin-tab" data-tab="animes">Animes</button>
+        <button class="admin-tab" data-tab="episodios">Episodios</button>
+        <button class="admin-tab" data-tab="banners">Banners</button>
+      </div>
+
+      <section class="admin-panel active" id="panel-dashboard">
+        <div class="grid-3">
+          <div class="stat-card"><div class="stat-label">Total animes</div><div class="stat-value" id="statAnimes">-</div></div>
+          <div class="stat-card"><div class="stat-label">Total episodios</div><div class="stat-value" id="statEps">-</div></div>
+          <div class="stat-card"><div class="stat-label">Total usuarios</div><div class="stat-value" id="statUsers">-</div></div>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="panel-animes">
+        <div class="admin-card">
+          <h3 id="animeFormTitle">Adicionar anime</h3>
+          <form id="animeForm" class="admin-form">
+            <input type="hidden" id="animeId">
+            <div class="admin-form grid-3">
+              <input class="admin-input" id="title" placeholder="Titulo" required>
+              <input class="admin-input" id="titleJp" placeholder="Titulo japones">
+              <input class="admin-input" id="year" type="number" placeholder="Ano">
+            </div>
+            <div class="admin-form grid-2">
+              <input class="admin-input" id="cover" placeholder="Cover URL">
+              <input class="admin-input" id="banner" placeholder="Banner URL">
+            </div>
+            <div class="admin-form grid-3">
+              <input class="admin-input" id="rating" type="number" step="0.1" placeholder="Rating">
+              <input class="admin-input" id="episodes" type="number" placeholder="Total episodios">
+              <select class="admin-select" id="status"><option>Em exibicao</option><option>Completo</option></select>
+            </div>
+            <div class="admin-form grid-3">
+              <input class="admin-input" id="genres" placeholder="Generos (separados por virgula)">
+              <input class="admin-input" id="tags" placeholder="Tags (separadas por virgula)">
+              <div class="inline-actions">
+                <label class="check-item"><input type="checkbox" id="dub"> Dub</label>
+                <label class="check-item"><input type="checkbox" id="sub" checked> Sub</label>
+              </div>
+            </div>
+            <textarea class="admin-textarea" id="description" placeholder="Descricao"></textarea>
+            <div class="inline-actions">
+              <button class="admin-btn" type="submit">Salvar anime</button>
+              <button class="admin-btn danger" type="button" id="cancelAnimeEdit">Cancelar edicao</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <h3>Lista de animes</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Titulo</th><th>Ano</th><th>Status</th><th>Rating</th><th>Eps</th><th>Acoes</th></tr></thead>
+              <tbody id="animeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="panel-episodios">
+        <div class="admin-card">
+          <h3>Episodios</h3>
+          <div class="admin-form grid-2">
+            <select class="admin-select" id="episodeAnimeSelect"></select>
+            <div class="muted">Selecione um anime para listar/adicionar episodios.</div>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3 id="episodeFormTitle">Adicionar episodio</h3>
+          <form id="episodeForm" class="admin-form">
+            <input type="hidden" id="episodeDocId">
+            <div class="admin-form grid-2">
+              <input class="admin-input" id="epNumber" type="number" placeholder="Numero" required>
+              <input class="admin-input" id="epTitle" placeholder="Titulo do episodio" required>
+            </div>
+            <textarea class="admin-textarea" id="epServers" placeholder='Servers JSON: [{"name":"SV1","url":"https://..."}]'></textarea>
+            <div class="inline-actions">
+              <button class="admin-btn" type="submit">Salvar episodio</button>
+              <button class="admin-btn danger" type="button" id="cancelEpisodeEdit">Cancelar edicao</button>
+            </div>
+          </form>
+        </div>
+        <div class="admin-card">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>#</th><th>Titulo</th><th>Servers</th><th>Acoes</th></tr></thead>
+              <tbody id="episodeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="panel-banners">
+        <div class="admin-card">
+          <h3>Hero Banners</h3>
+          <p class="muted">Selecione os animes que aparecerao no hero banner.</p>
+          <div id="bannerCheckList" class="check-list"></div>
+          <div style="margin-top:12px">
+            <button class="admin-btn" id="saveBannersBtn">Salvar banners</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toastWrap"></div>
+  <script type="module" src="../js/firebase.js"></script>
+  <script type="module" src="../js/admin.js"></script>
+</body>
+</html>

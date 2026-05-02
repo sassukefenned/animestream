@@ -1,0 +1,18 @@
+name = "animestream-payment-worker"
+main = "workers/payment.js"
+compatibility_date = "2026-05-01"
+
+# Após deploy no Pages, configure o domínio aqui:
+# routes = [
+#   { pattern = "SEU-PROJETO.pages.dev/api/payment/*", zone_name = "pages.dev" }
+# ]
+# Ou use Workers Routes no dashboard da Cloudflare.
+
+[vars]
+FIREBASE_PROJECT_ID = "SEU_FIREBASE_PROJECT_ID"
+FIREBASE_TOKEN_URI = "https://oauth2.googleapis.com/token"
+
+# Defina secrets via Wrangler (não colocar no git):
+# wrangler secret put ASAAS_API_KEY
+# wrangler secret put FIREBASE_CLIENT_EMAIL
+# wrangler secret put FIREBASE_PRIVATE_KEY
