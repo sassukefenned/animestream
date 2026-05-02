@@ -1,10 +1,10 @@
-name = "animestream-payment-worker"
+name = "animestream"
 main = "workers/payment.js"
 compatibility_date = "2026-05-01"
 
 # Após deploy no Pages, configure o domínio aqui:
 # routes = [
-#   { pattern = "SEU-PROJETO.pages.dev/api/payment/*", zone_name = "pages.dev" }
+#   { pattern = "https://stfenned.cloudflareaccess.com/cdn-cgi/access/certs//api/payment/*", zone_name = "animestream" }
 # ]
 # Ou use Workers Routes no dashboard da Cloudflare.
 
