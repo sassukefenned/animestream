@@ -4,7 +4,7 @@ compatibility_date = "2026-05-01"
 
 # Após deploy no Pages, configure o domínio aqui:
 # routes = [
-#   { pattern = "https://animestream.stfenned.workers.dev//api/payment/*", zone_name = "animestream" }
+#   { pattern = "https://stfenned.cloudflareaccess.com/cdn-cgi/access/certs//api/payment/*", zone_name = "animestream" }
 # ]
 # Ou use Workers Routes no dashboard da Cloudflare.
 
