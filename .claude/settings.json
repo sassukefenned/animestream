@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/local/bin/graphify hook-guard search",
+            "command": "/root/.local/bin/graphify hook-guard search",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/local/bin/graphify hook-guard read",
+            "command": "/root/.local/bin/graphify hook-guard read",
             "timeout": 10
           }
         ]
